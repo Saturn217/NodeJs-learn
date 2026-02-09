@@ -13,7 +13,7 @@ mongoose.connect(process.env.DATABASE_URI)
 console.log('Database connected succesfully');
 })
 .catch((err)=>{
-    console.log("Error connecting to database:", err);
+    console.log("Error connecting to database", err);
 })  
 
 // app.get(Path, callback)
@@ -158,7 +158,7 @@ app.post("/editProd/:id", (req, res)=>{
 app.listen(process.env.PORT, (err) => {
     if (err) {
         console.log('error starting server');
-    }
+    }   
     else {
         console.log('server started successfully');
 
