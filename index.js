@@ -6,6 +6,9 @@ app.set('view engine', 'ejs')
 const dotenv = require('dotenv')
 dotenv.config()
 app.use(express.urlencoded({extended:true}))
+app.use(express.json())
+const userRouter = require ('./routers/user.route')
+app.use('/api/v1', userRouter)
 
 
 mongoose.connect(process.env.DATABASE_URI)
