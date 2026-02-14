@@ -1,5 +1,8 @@
 const UserModel = require('../models/user.model')
+const bcrypt = require('bcrypt')
+const jwt = require('jsonwebtoken')
 
+// HTTP status codes are used to indicate the status of a request. They are divided into five categories:
 // 100-199 => informational
 // 200-299 => success
 // 300-399 => redirection
@@ -7,6 +10,7 @@ const UserModel = require('../models/user.model')
 // 500-599 => server error
 // 201 is the status code for created
 // 202 is the status code for accepted
+// 204 is the status code for no content
 // 300 is the status code for redirection
 // 400 is the status code for bad request
 // 401 is the status code for unauthorized
@@ -96,9 +100,9 @@ const deleteUser = async (req, res) => {
 }
 
 const getUser = async (req, res) => {
-    const {id} = req.params;
+    const { id } = req.params;
 
-    try{
+    try {
         const getUser = await UserModel.findById(id)
         res.status(200).send({
             message: 'User retrieved successfuly',
@@ -106,7 +110,7 @@ const getUser = async (req, res) => {
         })
     }
 
-    catch (error){
+    catch (error) {
         console.log(error);
         res.status(400).send({
             message: 'User retrieval failed',
@@ -114,25 +118,26 @@ const getUser = async (req, res) => {
     }
 
 }
-
+    // req.body is the data that is sent in the request body, it is usually used for POST and PATCH requests to send data to the server.
+    //  req.params is the data that is sent in the URL parameters, it is usually used for GET and DELETE requests to specify which resource we want to retrieve or delete. In this case, we are using req.params to get the id of the user that we want to retrieve or delete.
 const getAllUsers = async (req, res) => {
-    
-    try{
-        const getFullUsers = await UserModel.find()
+
+    try {
+        const getFullUsers = await UserModel.find().select('-password -roles') // this means we want to exclude the password and roles fields from the result, because we don't want to send them to the client for security reasons.
         res.status(200).send({
             message: 'Users retrieved successfuly',
             data: getFullUsers
         })
     }
 
-    catch(error){
+    catch (error) {
         console.log(error);
         res.status(400).send({
             message: 'Users retrieval failed',
         })
     }
-}   
-    
+}
+
 
 
 module.exports = {
