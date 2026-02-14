@@ -37,3 +37,4 @@
 // cloudinary => image upload and management
 // nodemailer => sending emails from your application
 // auth and authorization => authentication is the process of verifying the identity of a user, while authorization is the process of verifying if the authenticated user has the permission to access a resource or perform an action. We will use JWT (JSON Web Token) for authentication and authorization in our application. JWT is a compact, URL-safe means of representing claims to be transferred between two parties. It is commonly used for authentication and authorization in web applications.
+// salt and hashing => salting is the process of adding a random string to the password before hashing it, to make it more secure. Hashing is the process of converting a password into a fixed-length string of characters, which is irreversible. We will use bcrypt library for salting and hashing passwords in our application.
