@@ -18,6 +18,8 @@ const jwt = require('jsonwebtoken')
 // 404 is the status code for not found
 // 500 is the status code for internal server error
 
+// secret and  ,jwt will help to generate a token, wjere the user can use it to make req, and the dev can decode the token to verify the user activies or request
+
 
 const createUser = async (req, res) => {
     const { firstName, lastName, email, password } = req.body;
@@ -33,25 +35,86 @@ const createUser = async (req, res) => {
     // }
 
     try {
-        const user = await UserModel.create(req.body)
+        const saltround = await bcrypt.genSalt(10)
+        const hashedPassword = await bcrypt.hash(password, saltround)
+
+        const user = await UserModel.create({ firstName, lastName, email, password: hashedPassword })
+        const token = await jwt.sign({id: user._id}, process.env.JWT_SECRET, {expiresIn: "5h"})
+
         res.status(201).send({
             message: 'User created successfuly',
             data: {
                 lastName,
                 email,
-                firstName
-            }
+                firstName,
+                roles: user.roles
+            },
+            token
         })
 
     }
+
     catch (error) {
         console.log(error);
+        if (error.code === 11000) {
+            return res.status(400).send({
+                message: "User already registered"
+            })
+        }
 
         res.status(500).send({
             message: 'User creation failed',
             error: error.message
         })
     }
+
+}
+
+const login = async (req, res) => {
+
+    const { email, password } = req.body
+
+    try {
+        const isUser = await UserModel.findOne({ email })
+
+        if (!isUser) {
+            return res.status(404).send({
+                message: "Invalid credentials"
+            })
+        }
+
+        const isMatch = await bcrypt.compare(password, isUser.password)
+        if (!isMatch) {
+            return res.status(404).send({
+                message: "Invalid Credentials"
+            })
+        }
+
+        const token = await jwt.sign({id: isUser._id}, process.env.JWT_SECRET, {expiresIn: "5h"})
+
+
+        res.status(200).send({
+            message: "User logged in successfully",
+            data: {
+                email: isUser.email,
+                roles: isUser.roles,
+                firstName: isUser.firstName,
+                lastName: isUser.lastName
+            },
+            token
+        })
+    }
+
+
+    catch (error) {
+        console.log(error);
+
+        res.status(400).send({
+            message: 'Invalid credential',
+            error: error.message
+        })
+    }
+
 
 }
 
@@ -118,8 +181,8 @@ const getUser = async (req, res) => {
     }
 
 }
-    // req.body is the data that is sent in the request body, it is usually used for POST and PATCH requests to send data to the server.
-    //  req.params is the data that is sent in the URL parameters, it is usually used for GET and DELETE requests to specify which resource we want to retrieve or delete. In this case, we are using req.params to get the id of the user that we want to retrieve or delete.
+// req.body is the data that is sent in the request body, it is usually used for POST and PATCH requests to send data to the server.
+//  req.params is the data that is sent in the URL parameters, it is usually used for GET and DELETE requests to specify which resource we want to retrieve or delete. In this case, we are using req.params to get the id of the user that we want to retrieve or delete.
 const getAllUsers = async (req, res) => {
 
     try {
@@ -141,5 +204,5 @@ const getAllUsers = async (req, res) => {
 
 
 module.exports = {
-    createUser, editUser, deleteUser, getUser, getAllUsers
+    createUser, editUser, deleteUser, getUser, getAllUsers, login
 }
