@@ -39,7 +39,7 @@ const createUser = async (req, res) => {
         const hashedPassword = await bcrypt.hash(password, saltround)
 
         const user = await UserModel.create({ firstName, lastName, email, password: hashedPassword })
-        const token = await jwt.sign({id: user._id}, process.env.JWT_SECRET, {expiresIn: "5h"})
+        const token = await jwt.sign({ id: user._id }, process.env.JWT_SECRET, { expiresIn: "5h" })
 
         res.status(201).send({
             message: 'User created successfuly',
@@ -90,7 +90,7 @@ const login = async (req, res) => {
             })
         }
 
-        const token = await jwt.sign({id: isUser._id}, process.env.JWT_SECRET, {expiresIn: "5h"})
+        const token = await jwt.sign({ id: isUser._id, roles: isUser.roles }, process.env.JWT_SECRET, { expiresIn: "5h" })
 
 
         res.status(200).send({
@@ -185,7 +185,16 @@ const getUser = async (req, res) => {
 //  req.params is the data that is sent in the URL parameters, it is usually used for GET and DELETE requests to specify which resource we want to retrieve or delete. In this case, we are using req.params to get the id of the user that we want to retrieve or delete.
 const getAllUsers = async (req, res) => {
 
+    const user = req.user.roles
+
     try {
+        if (user !== "admin") {
+            res.status(403).send({
+                message: "Forbidden request"
+            })
+
+            return
+        }
         const getFullUsers = await UserModel.find().select('-password -roles') // this means we want to exclude the password and roles fields from the result, because we don't want to send them to the client for security reasons.
         res.status(200).send({
             message: 'Users retrieved successfuly',
@@ -201,8 +210,58 @@ const getAllUsers = async (req, res) => {
     }
 }
 
+const verifyUser = (req, res, next) => {
+    const token = req.headers['authorization'].split(" ")[1] ? req.headers['authorization'].split(" ")[1] : req.headers['authorization'].split(" ")[0]
+
+
+    jwt.verify(token, process.env.JWT_SECRET, function (err, decoded) {
+        
+        if (err) {
+            res.status(401).send({
+                message: "user unauthorized"
+            })
+
+            return;
+        }
+
+      
+        console.log(decoded);
+        req.user = decoded
+
+        next()
+
+    })
+
+
+}
+
+const getMe = async (req, res) => {
+
+    console.log(req.user);
+
+    try {
+        const user = await UserModel.findById(req.user.id).select("-password")
+
+        res.status(200).send({
+            message: "user retrieved successfully",
+            data: user
+        })
+    }
+    catch (error) {
+
+
+        res.status(401).send({
+            message: "User not found"
+        })
+
+    }
+
+
+}
+
+
 
 
 module.exports = {
-    createUser, editUser, deleteUser, getUser, getAllUsers, login
+    createUser, editUser, deleteUser, getUser, getAllUsers, login, verifyUser, getMe
 }
