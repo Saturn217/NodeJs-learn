@@ -1,6 +1,19 @@
 const UserModel = require('../models/user.model')
 const bcrypt = require('bcrypt')
 const jwt = require('jsonwebtoken')
+const nodemailer = require("nodemailer");
+const mailSender = require('../middleware/mailer');
+const otpgen = require("otp-generator")
+const dotenv = require('dotenv').config()
+const OTPModel = require('../models/otp.model');
+
+let transporter = nodemailer.createTransport({
+    service: 'gmail',
+    auth: {
+        user: process.env.NODE_MAIL,
+        pass: process.env.NODE_PASS,
+    }
+});
 
 // HTTP status codes are used to indicate the status of a request. They are divided into five categories:
 // 100-199 => informational
@@ -39,6 +52,9 @@ const createUser = async (req, res) => {
         const hashedPassword = await bcrypt.hash(password, saltround)
 
         const user = await UserModel.create({ firstName, lastName, email, password: hashedPassword })
+
+
+        const renderMail = await mailSender("welcomeMail.ejs", { firstName })
         const token = await jwt.sign({ id: user._id }, process.env.JWT_SECRET, { expiresIn: "5h" })
 
         res.status(201).send({
@@ -49,8 +65,23 @@ const createUser = async (req, res) => {
                 firstName,
                 roles: user.roles
             },
-            token
+            token,
         })
+
+        let mailOptions = {
+            from: process.env.NODE_MAIL,
+            to: email,   // [email, another2gmail.com, another3gmail.com] if you want to send the email to multiple recipients
+            subject: `welcome, ${firstName}`,
+            html: renderMail
+        };
+
+        transporter.sendMail(mailOptions, function (error, info) {
+            if (error) {
+                console.log(error);
+            } else {
+                console.log('Email sent: ' + info.response);
+            }
+        });
 
     }
 
@@ -78,6 +109,8 @@ const login = async (req, res) => {
         const isUser = await UserModel.findOne({ email })
 
         if (!isUser) {
+            console.log("oooooooo");
+
             return res.status(404).send({
                 message: "Invalid credentials"
             })
@@ -171,9 +204,12 @@ const getUser = async (req, res) => {
             message: 'User retrieved successfuly',
             data: getUser
         })
+
+
     }
 
     catch (error) {
+
         console.log(error);
         res.status(400).send({
             message: 'User retrieval failed',
@@ -210,12 +246,12 @@ const getAllUsers = async (req, res) => {
     }
 }
 
-const verifyUser = (req, res, next) => {
+const verifyUser = async (req, res, next) => {
     const token = req.headers['authorization'].split(" ")[1] ? req.headers['authorization'].split(" ")[1] : req.headers['authorization'].split(" ")[0]
 
 
     jwt.verify(token, process.env.JWT_SECRET, function (err, decoded) {
-        
+
         if (err) {
             res.status(401).send({
                 message: "user unauthorized"
@@ -224,7 +260,7 @@ const verifyUser = (req, res, next) => {
             return;
         }
 
-      
+
         console.log(decoded);
         req.user = decoded
 
@@ -262,6 +298,61 @@ const getMe = async (req, res) => {
 
 
 
+const requestOTP = async (req, res) => {
+    const { email} = req.body
+    try {
+        // save their otp and mail in the db
+        // send them a mail with the otp
+
+        const sendOTP = otpgen.generate(4, { upperCaseAlphabets: false, specialChars: false, lowerCaseAlphabets: false, digit: true })
+
+        const user = OTPModel.create({
+            email: email,
+            otp: sendOTP
+        })
+        const otpMail = await mailSender("otpMail.ejs", { otp: sendOTP })
+        res.status(200).send({
+            message: "OTP sent to your email",
+
+        })
+
+        const renderMail = await mailSender("otpMail.ejs", { otp: sendOTP })
+
+
+        let mailOptions = {
+            from: process.env.NODE_MAIL,
+            to: email,   // [email, another2gmail.com, another3gmail.com] if you want to send the email to multiple recipients
+            subject: "OTP for password reset",
+            html: renderMail
+        };
+
+
+        transporter.sendMail(mailOptions, function (error, info) {
+            if (error) {
+                console.log(error);
+            } else {
+                console.log('Email sent: ' + info.response);
+            }
+        });
+
+
+
+    }
+    catch (error) {
+        console.log(error);
+        res.status(400).send({
+            message: "OTP request failed"
+        })
+    }
+
+}
+const forgotPassword = async (req, res) => {
+
+}
+
+
+
+
 module.exports = {
-    createUser, editUser, deleteUser, getUser, getAllUsers, login, verifyUser, getMe
+    createUser, editUser, deleteUser, getUser, getAllUsers, login, verifyUser, getMe, requestOTP
 }

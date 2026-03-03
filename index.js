@@ -1,15 +1,21 @@
 const express = require('express')   // this is the main framework we are using to create our server and handle routes
 const app = express()  // this is the instance of express that we will use to create our server and handle routes
 const ejs = require('ejs')   // this is the template engine we are using to render our views (html files) and pass data to them
+
+
 const mongoose = require('mongoose')  // this is the library we are using to connect to our MongoDB database and define our data models (schemas) and perform CRUD operations on them
+const cors = require("cors")
+
 app.set('view engine', 'ejs') // this is the line of code that tells our express app to use ejs as the template engine to render our views (html files) and pass data to them. This means that when we call res.render('index'), it will look for a file named index.ejs in the views folder and render it with the data we pass to it.
 const dotenv = require('dotenv') // this is the library we are using to load environment variables from a .env file into process.env. This allows us to keep sensitive information like database connection strings and API keys out of our code and instead store them in a separate file that is not committed to version control.
 dotenv.config()  // this is the line of code that tells dotenv to load the environment variables from the .env file into process.env. This should be called before we try to access any environment variables in our code, otherwise they will be undefined.
 app.use(express.urlencoded({extended:true}))   // this is the line of code that tells our express app to use the built-in middleware function express.urlencoded() to parse incoming request bodies in a middleware before your handlers, available under the req.body property. The extended option allows you to choose between parsing the URL-encoded data with the querystring library (when false) or the qs library (when true). The qs library allows for rich objects and arrays to be encoded into the URL-encoded format, allowing for a JSON-like experience with URL-encoded. When extended is false, you can not post nested objects, but when it is true, you can post nested objects.
-app.use(express.json())   // this is the line of code that tells our express app to use the built-in middleware function express.json() to parse incoming request bodies in a middleware before your handlers, available under the req.body property. This is used to parse JSON data sent in the request body, which is common when making API requests.
+app.use(express.json({limit:"50mb"}))   // this is the line of code that tells our express app to use the built-in middleware function express.json() to parse incoming request bodies in a middleware before your handlers, available under the req.body property. This is used to parse JSON data sent in the request body, which is common when making API requests.
+app.use(cors())
 const userRouter = require ('./routers/user.route')   // this is the line of code that imports the userRouter from the user.route.js file in the routers folder. This router contains all the routes related to user operations (create, edit, delete, get) and we will use it to handle those routes in our main app.
 app.use('/api/v1', userRouter)  // this is the line of code that tells our express app to use the userRouter for any routes that start with /api/v1. This means that if we have a route defined in userRouter as router.post('/register', createUser), it will be accessible at /api/v1/register in our main app. This is a way to organize our routes and keep them modular by separating them into different files and using them in our main app with a specific prefix.
-
+const ProductRouter = require ("./routers/product.route")
+app.use("/api/v1", ProductRouter)
 
 mongoose.connect(process.env.DATABASE_URI)
 .then(()=>{
