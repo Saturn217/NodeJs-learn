@@ -55,6 +55,7 @@ const createUser = async (req, res) => {
 
 
         const renderMail = await mailSender("welcomeMail.ejs", { firstName })
+
         const token = await jwt.sign({ id: user._id }, process.env.JWT_SECRET, { expiresIn: "5h" })
 
         res.status(201).send({
@@ -299,10 +300,22 @@ const getMe = async (req, res) => {
 
 
 const requestOTP = async (req, res) => {
-    const { email} = req.body
+    const { email } = req.body
     try {
         // save their otp and mail in the db
         // send them a mail with the otp
+
+
+        const isUser =  await UserModel.findOne({ email })
+        if (!isUser) {
+            res.status(401).send({
+                message: "account with this email does not exist, please register",
+
+            })
+            return
+        }
+
+
 
         const sendOTP = otpgen.generate(4, { upperCaseAlphabets: false, specialChars: false, lowerCaseAlphabets: false, digit: true })
 
@@ -347,7 +360,24 @@ const requestOTP = async (req, res) => {
 
 }
 const forgotPassword = async (req, res) => {
+    const { email, otp, newPassword } = req.body
 
+    try{
+        const isUser = await OTPModel.findOne({email})
+
+        if(!isUser){
+            res.status(404).send({
+                message: "User not found"
+            })
+        }
+    }
+
+    catch (error){
+        console.log(error);
+        res.status(400).send({
+            message: "Password reset failed"
+        })
+    }
 }
 
 
