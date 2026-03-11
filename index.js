@@ -111,7 +111,7 @@ app.get('/', (req, res) => {        // creating a path for home page
     res.redirect('/index');
 });
 
-app.get('/index', (req, res)=>{      // creating a path for index.ejs
+app.get('/prod', (req, res)=>{      // creating a path for index.ejs
     res.render('index', {products}) // rendering index.ejs and passing products array to it
 })
 

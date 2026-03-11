@@ -39,8 +39,8 @@ let transporter = nodemailer.createTransport({
 
 const createUser = async (req, res) => {
 
-    console.log("Full request body:", req.body);
-    console.log("Received password:", req.body?.password)
+    // console.log("Full request body:", req.body);
+    // console.log("Received password:", req.body?.password)
     const { firstName, lastName, email, password } = req.body;
     // const user = UserModel.create(req.body)
 
@@ -62,35 +62,27 @@ const createUser = async (req, res) => {
 
 
 
-        
+
         const renderMail = await mailSender("welcomeMail.ejs", { firstName })
 
         let mailOptions = {
             from: process.env.NODE_MAIL,
             to: email,   // [email, another2gmail.com, another3gmail.com] if you want to send the email to multiple recipients
             subject: `welcome, ${firstName}`,
-            html: renderMail
+            html: renderMail,
         };
 
         try {
-            const info = await transporter.sendMail(mailOptions, function (error, info) {
-                if (error) {
-                    console.log(error);
-                } else {
-                    console.log('Email sent: ' + info.response);
-                }
-            });
-        }
-
-        catch (mailError){
-            console.error("error sending welcome mail", mailError)
-
+            const info = await transporter.sendMail(mailOptions);
+            console.log("Email sent: " + info.response);
+        } catch (mailError) {
+            console.error("Error sending welcome email:", mailError);
         }
 
 
         const token = await jwt.sign({ id: user._id }, process.env.JWT_SECRET, { expiresIn: "5h" })
 
-        
+
 
         res.status(201).send({
             message: 'User created successfuly',
@@ -102,10 +94,6 @@ const createUser = async (req, res) => {
             },
             token,
         })
-
-
-
-
 
     }
 
