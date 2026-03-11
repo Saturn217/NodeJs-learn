@@ -12,18 +12,21 @@ dotenv.config()  // this is the line of code that tells dotenv to load the envir
 app.use(express.urlencoded({extended:true}))   // this is the line of code that tells our express app to use the built-in middleware function express.urlencoded() to parse incoming request bodies in a middleware before your handlers, available under the req.body property. The extended option allows you to choose between parsing the URL-encoded data with the querystring library (when false) or the qs library (when true). The qs library allows for rich objects and arrays to be encoded into the URL-encoded format, allowing for a JSON-like experience with URL-encoded. When extended is false, you can not post nested objects, but when it is true, you can post nested objects.
 app.use(express.json({limit:"50mb"}))   // this is the line of code that tells our express app to use the built-in middleware function express.json() to parse incoming request bodies in a middleware before your handlers, available under the req.body property. This is used to parse JSON data sent in the request body, which is common when making API requests.
 app.use(cors())
+const connectDB = require("./database/connectDB")  // this is the line of code that imports the connectDB function from the connectDB.js file in the database folder. This function is responsible for connecting to our MongoDB database using mongoose and handling any connection errors that may occur. We will call this function before starting our server to ensure that we have a successful connection to the database before handling any incoming requests.
 const userRouter = require ('./routers/user.route')   // this is the line of code that imports the userRouter from the user.route.js file in the routers folder. This router contains all the routes related to user operations (create, edit, delete, get) and we will use it to handle those routes in our main app.
 app.use('/api/v1', userRouter)  // this is the line of code that tells our express app to use the userRouter for any routes that start with /api/v1. This means that if we have a route defined in userRouter as router.post('/register', createUser), it will be accessible at /api/v1/register in our main app. This is a way to organize our routes and keep them modular by separating them into different files and using them in our main app with a specific prefix.
 const ProductRouter = require ("./routers/product.route")
 app.use("/api/v1", ProductRouter)
 
-mongoose.connect(process.env.DATABASE_URI)
-.then(()=>{
-console.log('Database connected succesfully');
-})
-.catch((err)=>{
-    console.log("Error connecting to database", err);
-})  
+
+
+// mongoose.connect(process.env.DATABASE_URI)
+// .then(()=>{
+// console.log('Database connected succesfully');
+// })
+// .catch((err)=>{
+//     console.log("Error connecting to database", err);
+// })  
 
 // app.get(Path, callback)
 // request - req
@@ -174,3 +177,10 @@ app.listen(process.env.PORT, (err) => {   // this is the line of code that start
     }
 
 })
+
+
+module.exports = async(req, res) =>{
+    await connectDB()
+
+    return app(req, res)
+}

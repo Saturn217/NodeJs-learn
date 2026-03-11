@@ -27,8 +27,11 @@ let transporter = nodemailer.createTransport({
 // 300 is the status code for redirection
 // 400 is the status code for bad request
 // 401 is the status code for unauthorized
+//402 is the status code for payment required
 // 403 is the status code for forbidden
 // 404 is the status code for not found
+//409 is the status code for conflict
+// 422 is the status code for unprocessable entity
 // 500 is the status code for internal server error
 
 // secret and  ,jwt will help to generate a token, wjere the user can use it to make req, and the dev can decode the token to verify the user activies or request
@@ -306,7 +309,7 @@ const requestOTP = async (req, res) => {
         // send them a mail with the otp
 
 
-        const isUser =  await UserModel.findOne({ email })
+        const isUser = await UserModel.findOne({ email })
         if (!isUser) {
             res.status(401).send({
                 message: "account with this email does not exist, please register",
@@ -324,6 +327,8 @@ const requestOTP = async (req, res) => {
             otp: sendOTP
         })
         const otpMail = await mailSender("otpMail.ejs", { otp: sendOTP })
+
+        
         res.status(200).send({
             message: "OTP sent to your email",
 
@@ -362,17 +367,37 @@ const requestOTP = async (req, res) => {
 const forgotPassword = async (req, res) => {
     const { email, otp, newPassword } = req.body
 
-    try{
-        const isUser = await OTPModel.findOne({email})
+    try {
+        const isUser = await OTPModel.findOne({ email })
 
-        if(!isUser){
+        if (!isUser) {
             res.status(404).send({
-                message: "User not found"
+                message: "Invalid OTP"
             })
+
+            return
         }
+
+        let isMatch = (otp === isUser.otp)
+        if (!isMatch) {
+            res.status(404).send({
+                message: "Invalid OTP"
+            })
+
+            return
+        }
+
+        const saltround = await bcrypt.genSalt(10)
+        const hashedPassword = await bcrypt.hash(newPassword, saltround)
+        const user = await UserModel.findOneAndUpdate({ email }, { password: hashedPassword }, { new: true })
+
+        res.status(200).send({
+            message: "password updated successfully"
+        })
+
     }
 
-    catch (error){
+    catch (error) {
         console.log(error);
         res.status(400).send({
             message: "Password reset failed"
@@ -380,9 +405,47 @@ const forgotPassword = async (req, res) => {
     }
 }
 
+const changePassword = async (req, res) => {
+    const { oldPassword, newPassword } = req.body
+
+
+    try {
+        const isUser = await UserModel.findById(req.user.id)
+
+        if (!isUser) {
+            res.status(404).send({
+                message: "User not found"
+            })
+            return
+        }
+
+        const isMatch = await bcrypt.compare(oldPassword, isUser.password)
+
+        if (!isMatch) {
+            res.status(404).send({
+                message: "Invalid old password"
+            })
+            return
+        }
+
+        const saltround = await bcrypt.genSalt(10)
+        const hashedPassword = await bcrypt.hash(newPassword, saltround)
+        const user = await UserModel.findOneAndUpdate({ _id: req.user.id }, { password: hashedPassword }, { new: true })
+
+
+    }
+    catch (error) {
+        console.log(error);
+        res.status(400).send({
+            message: "Failed to change password"
+        })
+    }
+
+}
+
 
 
 
 module.exports = {
-    createUser, editUser, deleteUser, getUser, getAllUsers, login, verifyUser, getMe, requestOTP
+    createUser, editUser, deleteUser, getUser, getAllUsers, login, verifyUser, getMe, requestOTP, forgotPassword, changePassword
 }

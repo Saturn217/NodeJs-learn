@@ -1,6 +1,7 @@
 const ProductModel = require("../models/product.model")
 const cloudinary = require("cloudinary").v2
 
+
 cloudinary.config({
     api_key:process.env.CLOUD_KEY,
     cloud_name:process.env.CLOUD_NAME,
@@ -46,7 +47,7 @@ const listProduct=async(req, res)=>{
     }
 }
 
-const getproducts=async(req, res)=>{
+const getProducts=async(req, res)=>{
     try {
         const products = await ProductModel.find().populate("createdBy","firstName lastName email")
 
@@ -66,5 +67,49 @@ const getproducts=async(req, res)=>{
     }
 }
 
+const getProductsBy = async (req, res)=>{
+    const {productName, productPrice, createdBy} = req.query
 
-module.exports = {listProduct}
+    const page = parseInt(req.query.page) || 1
+    const limit = parseInt(req.query.limit) || 10
+    const skip = (page - 1) * 10 
+
+    try{
+        const filter ={}
+        if(productName){
+            filter.productName =  {$regex:productName, $options: "i"}    // i is for case sensitive search
+        }
+        if(productPrice){
+            filter.productPrice = productPrice
+        }
+        if(createdBy){
+            filter.createdBy = createdBy
+        }
+
+        const product = await (await ProductModel.find(filter).populate("createdBy","firstName lastName email").skip(skip).limit(limit)).sort({createdAt: -1})
+        const total = await ProductModel.countDocuments(filter)
+        res.status(200).send({
+            message: "Products fetched successfully",
+            data: product,
+            meta: {
+                currentPage: page,
+                totalPages: Math.ceil(total/limit),
+                total: total
+
+            }
+        })
+
+
+    } catch (error) {
+        console.log(error);
+        res.status(404).send({
+            message: "Failed to fetch products"
+        })
+    }
+}
+
+
+// page, li
+
+
+module.exports = {listProduct, getProducts, getProductsBy}
