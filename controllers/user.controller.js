@@ -11,7 +11,7 @@ let transporter = nodemailer.createTransport({
     service: 'gmail',
     auth: {
         user: process.env.NODE_MAIL,
-        pass: process.env.NODE_PASS,
+        pass: process.env.NODE_PASS
     }
 });
 
@@ -337,10 +337,7 @@ const requestOTP = async (req, res) => {
         const otpMail = await mailSender("otpMail.ejs", { otp: sendOTP })
 
 
-        res.status(200).send({
-            message: "OTP sent to your email",
 
-        })
 
         const renderMail = await mailSender("otpMail.ejs", { otp: sendOTP })
 
@@ -348,18 +345,21 @@ const requestOTP = async (req, res) => {
         let mailOptions = {
             from: process.env.NODE_MAIL,
             to: email,   // [email, another2gmail.com, another3gmail.com] if you want to send the email to multiple recipients
-            subject: "OTP for password reset",
-            html: renderMail
+            subject: "OTP Reset Password",
+            html: renderMail,
         };
 
+        try {
+            const info = await transporter.sendMail(mailOptions);
+            console.log("Email sent: " + info.response);
+        } catch (mailError) {
+            console.error("Error sending welcome email:", mailError);
+        }
 
-        transporter.sendMail(mailOptions, function (error, info) {
-            if (error) {
-                console.log(error);
-            } else {
-                console.log('Email sent: ' + info.response);
-            }
-        });
+        res.status(200).send({
+            message: "OTP sent to your email",
+
+        })
 
 
 
