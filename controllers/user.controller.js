@@ -38,6 +38,9 @@ let transporter = nodemailer.createTransport({
 
 
 const createUser = async (req, res) => {
+
+    console.log("Full request body:", req.body);           
+    console.log("Received password:", req.body?.password)
     const { firstName, lastName, email, password } = req.body;
     // const user = UserModel.create(req.body)
 
@@ -328,7 +331,7 @@ const requestOTP = async (req, res) => {
         })
         const otpMail = await mailSender("otpMail.ejs", { otp: sendOTP })
 
-        
+
         res.status(200).send({
             message: "OTP sent to your email",
 
